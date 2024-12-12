@@ -44,6 +44,7 @@ next-env.d.ts
 *.swo
 #QR files
 /public/*.png
+/public/generated-qrs/*.png
 # PWA files
 **/public/sw.js
 **/public/workbox-*.js
