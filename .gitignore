@@ -42,7 +42,8 @@ next-env.d.ts
 .vscode
 *.swp
 *.swo
-
+#QR files
+/public/*.png
 # PWA files
 **/public/sw.js
 **/public/workbox-*.js
