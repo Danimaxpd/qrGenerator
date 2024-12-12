@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useEffect } from 'react';
 import {
     Box,
     Image,
@@ -13,58 +13,63 @@ import {
     Card,
     CardBody,
     CardFooter,
-    Heading
+    Spinner,
+    Flex
 } from '@chakra-ui/react';
+import { useQRContext } from '@/context/qr-context';
+
+interface QRCode {
+    fileName: string;
+    base64Data: string;
+}
 
 const QRViewer: React.FC = () => {
-    const [isClient, setIsClient] = useState(false);
-    const [qrCodes, setQRCodes] = useState<string[]>([]);
+    const {
+        qrCodes = [] as QRCode[],
+        deleteQRCode,
+        fetchQRCodes,
+        isLoading,
+        error
+    } = useQRContext();
     const toast = useToast();
 
-    const fetchQRCodes = async () => {
-        try {
-            const response = await fetch('/api/qr-list');
-            const data = await response.json();
-            setQRCodes(data.qrCodes);
-        } catch (error) {
-            console.error('Failed to fetch QR codes', error);
-        }
-    };
-
     useEffect(() => {
-        setIsClient(true);
         fetchQRCodes();
-    }, []);
+    }, [fetchQRCodes]);
+
+    // Handle any errors from context
+    useEffect(() => {
+        if (error) {
+            toast({
+                title: 'Error',
+                description: error,
+                status: 'error',
+                duration: 5000,
+                isClosable: true,
+            });
+        }
+    }, [error, toast]);
 
     const handleDelete = async (fileName: string) => {
         try {
-            const response = await fetch(`/api/qr-delete`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ fileName }),
-            });
+            await deleteQRCode(fileName);
 
-            const result = await response.json();
+            // Fetch the updated list of QR codes
+            fetchQRCodes();
 
-            if (response.ok) {
-                toast({
-                    title: 'QR Code Deleted',
-                    description: result.message,
-                    status: 'success',
-                    duration: 3000,
-                    isClosable: true,
-                });
-                // Refresh the list after deletion
-                fetchQRCodes();
-            } else {
-                throw new Error(result.error || 'Failed to delete QR code');
-            }
-        } catch (error) {
+            // Success toast
             toast({
-                title: 'Error',
-                description: error instanceof Error ? error.message : 'Unknown error',
+                title: 'QR Code Deleted',
+                description: `QR code ${fileName} has been successfully deleted`,
+                status: 'success',
+                duration: 3000,
+                isClosable: true,
+            });
+        } catch (err) {
+            // Error toast
+            toast({
+                title: 'Delete Failed',
+                description: err instanceof Error ? err.message : 'Failed to delete QR code',
                 status: 'error',
                 duration: 5000,
                 isClosable: true,
@@ -72,7 +77,17 @@ const QRViewer: React.FC = () => {
         }
     };
 
-    if (!isClient) return null;
+    if (isLoading) {
+        return (
+            <Flex justify="center" align="center" height="200px">
+                <Spinner
+                    size="xl"
+                    color="blue.500"
+                    thickness="4px"
+                />
+            </Flex>
+        );
+    }
 
     return (
         <Box>
@@ -81,51 +96,56 @@ const QRViewer: React.FC = () => {
             </Text>
             <Wrap spacing={4} justify="center">
                 {qrCodes.length === 0 ? (
-                    <Text>No QR codes generated yet</Text>
+                    <Text color="gray.500" textAlign="center" width="full">
+                        No QR codes generated yet
+                    </Text>
                 ) : (
-                    qrCodes.map((qrCode) => (
-                        <WrapItem key={qrCode}>
-                            <Card
-                                maxW="xs"
-                                boxShadow="md"
-                                borderWidth="0px"
-                                overflow="hidden"
-                            >
-                                <CardBody>
-                                    <VStack>
-                                        <Image
-                                            src={`/generated-qrs/${qrCode}`}
-                                            alt={`QR Code for ${qrCode}`}
-                                            boxSize="150px"
-                                            objectFit="cover"
-                                        />
-                                        <Text
-                                            mt={2}
-                                            textAlign="center"
-                                            fontSize="md"
-                                            isTruncated
-                                            maxWidth="full"
+                    qrCodes.map((qrCode) => {
+                        const { fileName, base64Data } = qrCode;
+                        return (
+                            <WrapItem key={fileName}>
+                                <Card
+                                    maxW="xs"
+                                    boxShadow="md"
+                                    borderWidth="0px"
+                                    overflow="hidden"
+                                >
+                                    <CardBody>
+                                        <VStack>
+                                            <Image
+                                                src={`data:image/png;base64,${base64Data}`}
+                                                alt={`QR Code for ${fileName}`}
+                                                boxSize="150px"
+                                                objectFit="cover"
+                                            />
+                                            <Text
+                                                mt={2}
+                                                textAlign="center"
+                                                fontSize="md"
+                                                isTruncated
+                                                maxWidth="full"
+                                            >
+                                                {fileName}
+                                            </Text>
+                                        </VStack>
+                                    </CardBody>
+                                    <CardFooter>
+                                        <Button
+                                            colorScheme="red"
+                                            size="sm"
+                                            width="full"
+                                            onClick={() => handleDelete(fileName)}
                                         >
-                                            {qrCode}
-                                        </Text>
-                                    </VStack>
-                                </CardBody>
-                                <CardFooter>
-                                    <Button
-                                        colorScheme="red"
-                                        size="sm"
-                                        width="full"
-                                        onClick={() => handleDelete(qrCode)}
-                                    >
-                                        Delete
-                                    </Button>
-                                </CardFooter>
-                            </Card>
-                        </WrapItem>
-                    ))
+                                            Delete
+                                        </Button>
+                                    </CardFooter>
+                                </Card>
+                            </WrapItem>
+                        );
+                    })
                 )}
             </Wrap>
-        </Box>
+        </Box >
     );
 };
 

@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import fs from 'fs/promises';
-import path from 'path';
+import { QRGeneratorService } from '@/services/qr-generator.service';
 
 export async function POST(request: NextRequest) {
   try {
@@ -13,20 +12,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const filePath = path.join(process.cwd(), 'public', 'generated-qrs', fileName);
-
-    // Check if file exists before attempting to delete
-    try {
-      await fs.access(filePath);
-    } catch {
-      return NextResponse.json(
-        { error: 'File not found' }, 
-        { status: 404 }
-      );
-    }
-
-    // Delete the file
-    await fs.unlink(filePath);
+    await QRGeneratorService.deleteQRCode(fileName);
 
     return NextResponse.json(
       { message: `QR code ${fileName} deleted successfully` }, 

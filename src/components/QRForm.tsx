@@ -16,6 +16,7 @@ import {
     SimpleGrid
 } from '@chakra-ui/react';
 import { ContactInfo } from '@/types/contact.type';
+import { useQRContext } from '@/context/qr-context';
 
 const QRForm: React.FC = () => {
     const [formData, setFormData] = useState<ContactInfo>({
@@ -27,7 +28,7 @@ const QRForm: React.FC = () => {
         email: '',
     });
 
-    const [isLoading, setIsLoading] = useState(false);
+    const { addQRCode, isLoading, error } = useQRContext();
     const toast = useToast();
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -40,50 +41,37 @@ const QRForm: React.FC = () => {
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        setIsLoading(true);
-
-        try {
-            const response = await fetch('/api/qr', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify(formData),
+        
+        const result = await addQRCode(formData);
+        
+        if (result) {
+            // Success toast
+            toast({
+                title: 'QR Code Generated',
+                description: `QR code created for ${formData.firstName} ${formData.lastName}`,
+                status: 'success',
+                duration: 5000,
+                isClosable: true,
             });
 
-            const result = await response.json();
-
-            if (response.ok) {
-                toast({
-                    title: 'QR Code Generated',
-                    description: result.message,
-                    status: 'success',
-                    duration: 5000,
-                    isClosable: true,
-                });
-
-                // Reset form after successful submission
-                setFormData({
-                    firstName: '',
-                    lastName: '',
-                    phone: '',
-                    organization: '',
-                    title: '',
-                    email: '',
-                });
-            } else {
-                throw new Error(result.error || 'Failed to generate QR code');
-            }
-        } catch (error) {
+            // Reset form after successful submission
+            setFormData({
+                firstName: '',
+                lastName: '',
+                phone: '',
+                organization: '',
+                title: '',
+                email: '',
+            });
+        } else {
+            // Error toast (from context)
             toast({
-                title: 'Error',
-                description: error instanceof Error ? error.message : 'Unknown error',
+                title: 'Error Generating QR Code',
+                description: error || 'Failed to generate QR code',
                 status: 'error',
                 duration: 5000,
                 isClosable: true,
             });
-        } finally {
-            setIsLoading(false);
         }
     };
 

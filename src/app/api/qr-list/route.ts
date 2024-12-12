@@ -1,17 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
-import fs from 'fs/promises';
-import path from 'path';
+import { QRGeneratorService } from '@/services/qr-generator.service';
 
 export async function GET(request: NextRequest) {
   try {
-    const qrDir = path.join(process.cwd(), 'public', 'generated-qrs');
-    
-    // Ensure the directory exists
-    await fs.mkdir(qrDir, { recursive: true });
-    
-    // Read the directory contents
-    const qrCodes = await fs.readdir(qrDir);
-    
+    const qrCodes = await QRGeneratorService.listQRCodes();
     return NextResponse.json({ qrCodes }, { status: 200 });
   } catch (error) {
     return NextResponse.json(
