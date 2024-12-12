@@ -1,14 +1,15 @@
 'use client'
 
 import { CacheProvider } from '@chakra-ui/next-js'
-import { ChakraProvider } from '@chakra-ui/react'
-
+import { ChakraProvider, extendTheme } from '@chakra-ui/react'
+import { mode } from '@chakra-ui/theme-tools'
+import theme from '@/theme';
 export function Providers({ children }: { children: React.ReactNode }) {
-  return (
-    <CacheProvider>
-      <ChakraProvider disableEnvironment>
-        {children}
-      </ChakraProvider>
-    </CacheProvider>
-  )
+    return (
+        <CacheProvider>
+            <ChakraProvider theme={theme}>
+                {children}
+            </ChakraProvider>
+        </CacheProvider>
+    )
 } 
